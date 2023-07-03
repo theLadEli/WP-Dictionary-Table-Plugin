@@ -28,7 +28,6 @@ function simple_table_shortcode() {
 }
 add_shortcode('simple_table', 'simple_table_shortcode');
 
-
 // Register the admin menu
 function simple_table_plugin_menu() {
     add_menu_page(
@@ -43,6 +42,54 @@ function simple_table_plugin_menu() {
 }
 add_action('admin_menu', 'simple_table_plugin_menu');
 
+// Enqueue the plugin CSS
+function simple_table_plugin_styles() {
+    wp_enqueue_style('simple-table-plugin', plugin_dir_url(__FILE__) . 'css/simple-table.css');
+}
+add_action('wp_enqueue_scripts', 'simple_table_plugin_styles');
+
+// Enqueue the admin CSS and JavaScript
+function simple_table_plugin_admin_scripts() {
+    wp_enqueue_script('jquery-ui-sortable');
+    wp_enqueue_style('simple-table-plugin', plugin_dir_url(__FILE__) . 'css/simple-table.css');
+    wp_enqueue_script('simple-table-plugin', plugin_dir_url(__FILE__) . 'js/simple-table.js', array('jquery', 'jquery-ui-sortable'));
+}
+add_action('admin_enqueue_scripts', 'simple_table_plugin_admin_scripts');
+
+// Localize the admin JavaScript
+function simple_table_plugin_localize_scripts() {
+    wp_localize_script('simple-table-plugin', 'simpleTablePlugin', array(
+        'security' => wp_create_nonce('simple-table-plugin')
+    ));
+}
+add_action('admin_enqueue_scripts', 'simple_table_plugin_localize_scripts');
+
+// Handle AJAX reorder
+function simple_table_plugin_reorder_rows() {
+    check_ajax_referer('simple-table-plugin-reorder-rows', 'security');
+
+    $rows = $_POST['rows'];
+    update_option('simple_table_rows', $rows);
+
+    wp_send_json_success();
+}
+add_action('wp_ajax_simple_table_plugin_reorder_rows', 'simple_table_plugin_reorder_rows');
+
+// Handle AJAX row deletion
+function simple_table_plugin_delete_row() {
+    check_ajax_referer('simple-table-plugin-delete-row', 'security');
+
+    $row_index = intval($_POST['row']);
+
+    $rows = get_option('simple_table_rows', array());
+    if (isset($rows[$row_index])) {
+        unset($rows[$row_index]);
+        update_option('simple_table_rows', array_values($rows));
+    }
+
+    wp_send_json_success();
+}
+add_action('wp_ajax_simple_table_plugin_delete_row', 'simple_table_plugin_delete_row');
 
 // Render the settings page
 function simple_table_plugin_settings_page() {
@@ -54,21 +101,9 @@ function simple_table_plugin_settings_page() {
     if (isset($_POST['submit'])) {
         $term = sanitize_text_field($_POST['term']);
         $definition = sanitize_text_field($_POST['definition']);
-
         $rows = get_option('simple_table_rows', array());
         $rows[] = array('term' => $term, 'definition' => $definition);
         update_option('simple_table_rows', $rows);
-    }
-
-    // Delete row if requested
-    if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['row'])) {
-        $row_index = intval($_GET['row']);
-
-        $rows = get_option('simple_table_rows', array());
-        if (isset($rows[$row_index])) {
-            unset($rows[$row_index]);
-            update_option('simple_table_rows', array_values($rows));
-        }
     }
 
     // Get existing rows
@@ -76,10 +111,6 @@ function simple_table_plugin_settings_page() {
 
     // Generate the shortcode
     $shortcode = '[simple_table]';
-    foreach ($rows as $row) {
-        $shortcode .= PHP_EOL . '[row term="' . esc_attr($row['term']) . '" definition="' . esc_attr($row['definition']) . '"]';
-    }
-    $shortcode .= PHP_EOL . '[/simple_table]';
     ?>
     <div class="wrap">
         <h1>Simple Table Plugin Settings</h1>
@@ -106,13 +137,13 @@ function simple_table_plugin_settings_page() {
                         <th></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="simple-table-rows">
                     <?php foreach ($rows as $index => $row) { ?>
-                        <tr>
+                        <tr data-row="<?php echo $index; ?>">
                             <td><?php echo esc_html($row['term']); ?></td>
                             <td><?php echo esc_html($row['definition']); ?></td>
                             <td>
-                                <a href="<?php echo esc_url(add_query_arg(array('action' => 'delete', 'row' => $index))); ?>">Delete</a>
+                                <button class="simple-table-delete-row" data-row="<?php echo $index; ?>">Delete</button>
                             </td>
                         </tr>
                     <?php } ?>
@@ -122,7 +153,8 @@ function simple_table_plugin_settings_page() {
             <p>No rows found.</p>
         <?php } ?>
         <h2>Embedding the Table</h2>
-        <pre><code><?php echo esc_html($shortcode); ?></code></pre>
+        <pre><code id="simple-table-shortcode"><?php echo esc_html($shortcode); ?></code></pre>
+        <button id="simple-table-copy-shortcode">Copy Shortcode</button>
     </div>
     <?php
 }
