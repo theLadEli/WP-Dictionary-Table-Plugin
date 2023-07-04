@@ -59,10 +59,12 @@ add_action('admin_enqueue_scripts', 'simple_table_plugin_admin_scripts');
 // Localize the admin JavaScript
 function simple_table_plugin_localize_scripts() {
     wp_localize_script('simple-table-plugin', 'simpleTablePlugin', array(
-        'security' => wp_create_nonce('simple-table-plugin')
+        'security' => wp_create_nonce('simple-table-plugin'),
+        'deleteNonce' => wp_create_nonce('simple-table-plugin-delete-row') // new nonce for delete
     ));
 }
 add_action('admin_enqueue_scripts', 'simple_table_plugin_localize_scripts');
+
 
 // Handle AJAX reorder
 function simple_table_plugin_reorder_rows() {
@@ -75,21 +77,24 @@ function simple_table_plugin_reorder_rows() {
 }
 add_action('wp_ajax_simple_table_plugin_reorder_rows', 'simple_table_plugin_reorder_rows');
 
-// Handle AJAX row deletion
+// Handle AJAX delete
 function simple_table_plugin_delete_row() {
     check_ajax_referer('simple-table-plugin-delete-row', 'security');
 
-    $row_index = intval($_POST['row']);
-
+    $rowIndex = $_POST['rowIndex'];
     $rows = get_option('simple_table_rows', array());
-    if (isset($rows[$row_index])) {
-        unset($rows[$row_index]);
-        update_option('simple_table_rows', array_values($rows));
+    
+    if(isset($rows[$rowIndex])) {
+        unset($rows[$rowIndex]);
+        $rows = array_values($rows); // Re-index the array
+        update_option('simple_table_rows', $rows);
+        wp_send_json_success();
+    } else {
+        wp_send_json_error();
     }
-
-    wp_send_json_success();
 }
 add_action('wp_ajax_simple_table_plugin_delete_row', 'simple_table_plugin_delete_row');
+
 
 // Render the settings page
 function simple_table_plugin_settings_page() {
@@ -130,24 +135,24 @@ function simple_table_plugin_settings_page() {
         <h2>Table Rows</h2>
         <?php if (!empty($rows)) { ?>
             <table class="wp-list-table widefat fixed striped">
+
                 <thead>
                     <tr>
                         <th>Term</th>
                         <th>Definition</th>
-                        <th></th>
                     </tr>
                 </thead>
+
                 <tbody id="simple-table-rows">
                     <?php foreach ($rows as $index => $row) { ?>
                         <tr data-row="<?php echo $index; ?>">
                             <td><?php echo esc_html($row['term']); ?></td>
                             <td><?php echo esc_html($row['definition']); ?></td>
-                            <td>
-                                <button class="simple-table-delete-row" data-row="<?php echo $index; ?>">Delete</button>
-                            </td>
+                            <td><button class="simple-table-delete-row button">Delete</button></td>
                         </tr>
                     <?php } ?>
                 </tbody>
+
             </table>
         <?php } else { ?>
             <p>No rows found.</p>
@@ -158,3 +163,4 @@ function simple_table_plugin_settings_page() {
     </div>
     <?php
 }
+?>

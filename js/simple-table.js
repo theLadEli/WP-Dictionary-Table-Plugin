@@ -1,4 +1,5 @@
 jQuery(document).ready(function($) {
+
     // Make rows sortable
     $('#simple-table-rows').sortable({
         update: function(event, ui) {
@@ -12,20 +13,33 @@ jQuery(document).ready(function($) {
         }
     });
 
-    // Delete row button
-    $('.simple-table-delete-row').click(function() {
-        var row = $(this).data('row');
 
-        $.post(ajaxurl, {
-            action: 'simple_table_plugin_delete_row',
-            row: row,
-            security: simpleTablePlugin.security
-        }, function() {
-            location.reload();
-        });
+    // Handle delete button click
+    $('#simple-table-rows').on('click', '.simple-table-delete-row', function() {
+        console.log("Delete button clicked.");  // debug log
+        if (confirm('Are you sure you want to delete this row?')) {
+            var row = $(this).closest('tr');
+            var rowIndex = row.data('row');
 
-        return false;
+            console.log("Row index: " + rowIndex);  // debug log
+
+            $.post(ajaxurl, {
+                action: 'simple_table_plugin_delete_row',
+                rowIndex: rowIndex,
+                security: simpleTablePlugin.deleteNonce  // use the delete nonce
+            }, function(response) {
+                if (response.success) {
+                    console.log("Row deletion successful.");  // debug log
+                    row.remove();
+                } else {
+                    console.log("Failed to delete row: " + response);  // debug log
+                    alert('Failed to delete the row.');
+                }
+            });
+        }
     });
+
+
 
     // Copy shortcode button
     $('#simple-table-copy-shortcode').click(function() {
