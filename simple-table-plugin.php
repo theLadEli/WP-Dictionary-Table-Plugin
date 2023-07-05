@@ -2,7 +2,7 @@
 /*
 Plugin Name: Simple Dictionary Table Plugin
 Description: A simple plugin for a WordPress Dictionary Table
-Version: 2.0
+Version: 2.2
 Author: Eli
 */
 
@@ -20,8 +20,8 @@ function simple_table_shortcode() {
             </tr>
             <?php foreach ($rows as $row) { ?>
                 <tr>
-                    <td><?php echo esc_html($row['term']); ?></td>
-                    <td><?php echo esc_html($row['definition']); ?></td>
+                    <td><?php echo esc_html(stripslashes($row['term'])); ?></td>
+                    <td><?php echo esc_html(stripslashes($row['definition'])); ?></td>
                 </tr>
             <?php } ?>
         </table>
@@ -113,11 +113,16 @@ function simple_table_plugin_export_csv() {
     // Get the rows
     $rows = get_option('simple_table_rows', array());
 
+
     // Generate CSV content
     $csv = "Term,Definition\n"; // header
     foreach ($rows as $row) {
-        $csv .= esc_html($row['term']) . ',' . esc_html($row['definition']) . "\n";
+        $term = str_replace('"', '""', stripslashes($row['term']));
+        $definition = str_replace('"', '""', stripslashes($row['definition']));
+        $csv .= '"' . $term . '","' . $definition . "\"\n";
     }
+
+
 
     // Send the CSV to the browser
     header('Content-Type: text/csv');
@@ -128,6 +133,7 @@ function simple_table_plugin_export_csv() {
     die();
 }
 add_action('wp_ajax_simple_table_plugin_export_csv', 'simple_table_plugin_export_csv');
+
 
 
 // Render the settings page
