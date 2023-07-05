@@ -1,34 +1,5 @@
 jQuery(document).ready(function($) {
 
-    // Make rows sortable
-    $('#simple-table-rows').sortable({
-        handle: '.drag-handle',
-        update: function(event, ui) {
-            var rows = $('#simple-table-rows').sortable('toArray', { attribute: 'data-row' });
-
-            $.post(ajaxurl, {
-                action: 'simple_table_plugin_reorder_rows',
-                rows: rows,
-                security: simpleTablePlugin.security
-            }, function(response) {
-                if (response.success) {
-                    // nonce needs to be updated here
-                    $.post(ajaxurl, {
-                        action: 'simple_table_plugin_update_nonce',
-                    }, function(response) {
-                        if (response.success) {
-                            simpleTablePlugin.security = response.data.security; // update the nonce
-                        } else {
-                            alert('Failed to reorder the rows. Please try again.');
-                        }
-                    });
-                } else {
-                    alert('Failed to reorder the rows. Please try again.');
-                }
-            });
-        }
-    });
-
     // Handle delete button click
     $('#simple-table-rows').on('click', '.simple-table-delete-row', function() {
         console.log("Delete button clicked.");  // debug log

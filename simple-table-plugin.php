@@ -2,7 +2,7 @@
 /*
 Plugin Name: Simple Dictionary Table Plugin
 Description: A simple plugin for a WordPress Dictionary Table
-Version: 2.2
+Version: 2.1
 Author: Eli
 */
 
@@ -69,24 +69,6 @@ function simple_table_plugin_localize_scripts() {
 }
 add_action('admin_enqueue_scripts', 'simple_table_plugin_localize_scripts');
 
-function simple_table_plugin_update_nonce() {
-    wp_send_json_success(array(
-        'security' => wp_create_nonce('simple-table-plugin'),
-    ));
-}
-add_action('wp_ajax_simple_table_plugin_update_nonce', 'simple_table_plugin_update_nonce');
-
-
-// Handle AJAX reorder
-function simple_table_plugin_reorder_rows() {
-    check_ajax_referer('simple-table-plugin-reorder-rows', 'security');
-
-    $rows = $_POST['rows'];
-    update_option('simple_table_rows', $rows);
-
-    wp_send_json_success();
-}
-add_action('wp_ajax_simple_table_plugin_reorder_rows', 'simple_table_plugin_reorder_rows');
 
 // Handle AJAX delete
 function simple_table_plugin_delete_row() {
@@ -186,9 +168,6 @@ function simple_table_plugin_settings_page() {
                     <tbody id="simple-table-rows">
                         <?php foreach ($rows as $index => $row) { ?>
                             <tr data-row="<?php echo $index; ?>">
-                                <td class="drag-handle">
-                                    <img src="<?php echo plugin_dir_url(__FILE__) . 'assets/drag-icon.svg'; ?>" width="20">
-                                </td>
                                 <td><?php echo esc_html($row['term']); ?></td>
                                 <td><?php echo esc_html($row['definition']); ?></td>
                                 <td><button class="simple-table-delete-row button">Delete</button></td>
@@ -201,10 +180,12 @@ function simple_table_plugin_settings_page() {
             <p>No rows found.</p>
         <?php } ?>
         <h2>Embedding the Table</h2>
+        <p>Copy the shortcode by clicking the button below, and paste it where you want the table displayed on your website.</p>
         <pre><code id="simple-table-shortcode"><?php echo esc_html($shortcode); ?></code></pre>
         <button id="simple-table-copy-shortcode">Copy Shortcode</button>
 
-        
+        <h2>Export as CSV</h2>
+        <p>Export the entire table as a CSV by clicking the button below.</p>
         <button id="simple-table-export-csv" class="button button-primary">Export as CSV</button>
 
 
