@@ -65,6 +65,13 @@ function simple_table_plugin_localize_scripts() {
 }
 add_action('admin_enqueue_scripts', 'simple_table_plugin_localize_scripts');
 
+function simple_table_plugin_update_nonce() {
+    wp_send_json_success(array(
+        'security' => wp_create_nonce('simple-table-plugin'),
+    ));
+}
+add_action('wp_ajax_simple_table_plugin_update_nonce', 'simple_table_plugin_update_nonce');
+
 
 // Handle AJAX reorder
 function simple_table_plugin_reorder_rows() {
@@ -142,17 +149,18 @@ function simple_table_plugin_settings_page() {
                         <th>Definition</th>
                     </tr>
                 </thead>
-
-                <tbody id="simple-table-rows">
-                    <?php foreach ($rows as $index => $row) { ?>
-                        <tr data-row="<?php echo $index; ?>">
-                            <td><?php echo esc_html($row['term']); ?></td>
-                            <td><?php echo esc_html($row['definition']); ?></td>
-                            <td><button class="simple-table-delete-row button">Delete</button></td>
-                        </tr>
-                    <?php } ?>
-                </tbody>
-
+                    <tbody id="simple-table-rows">
+                        <?php foreach ($rows as $index => $row) { ?>
+                            <tr data-row="<?php echo $index; ?>">
+                                <td class="drag-handle">
+                                    <img src="<?php echo plugin_dir_url(__FILE__) . 'assets/drag-icon.svg'; ?>" width="20">
+                                </td>
+                                <td><?php echo esc_html($row['term']); ?></td>
+                                <td><?php echo esc_html($row['definition']); ?></td>
+                                <td><button class="simple-table-delete-row button">Delete</button></td>
+                            </tr>
+                        <?php } ?>
+                    </tbody>
             </table>
         <?php } else { ?>
             <p>No rows found.</p>
