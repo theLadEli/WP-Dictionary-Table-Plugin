@@ -2,7 +2,7 @@
 /*
 Plugin Name: Simple Dictionary Table Plugin
 Description: A simple plugin for a WordPress Dictionary Table
-Version: 1.0
+Version: 2.0
 Author: Eli
 */
 
@@ -11,18 +11,22 @@ function simple_table_shortcode() {
     $rows = get_option('simple_table_rows', array());
     ob_start();
     ?>
-    <table class="simple-table">
-        <tr>
-            <th>Term</th>
-            <th>Definition</th>
-        </tr>
-        <?php foreach ($rows as $row) { ?>
+
+    <div class="table-wrapper">
+        <table class="simple-table">
             <tr>
-                <td><?php echo esc_html($row['term']); ?></td>
-                <td><?php echo esc_html($row['definition']); ?></td>
+                <th>Term</th>
+                <th>Definition</th>
             </tr>
-        <?php } ?>
-    </table>
+            <?php foreach ($rows as $row) { ?>
+                <tr>
+                    <td><?php echo esc_html($row['term']); ?></td>
+                    <td><?php echo esc_html($row['definition']); ?></td>
+                </tr>
+            <?php } ?>
+        </table>
+    </div>
+
     <?php
     return ob_get_clean();
 }
@@ -102,6 +106,29 @@ function simple_table_plugin_delete_row() {
 }
 add_action('wp_ajax_simple_table_plugin_delete_row', 'simple_table_plugin_delete_row');
 
+// Handle AJAX CSV export
+function simple_table_plugin_export_csv() {
+    check_ajax_referer('simple-table-plugin', 'security');
+
+    // Get the rows
+    $rows = get_option('simple_table_rows', array());
+
+    // Generate CSV content
+    $csv = "Term,Definition\n"; // header
+    foreach ($rows as $row) {
+        $csv .= esc_html($row['term']) . ',' . esc_html($row['definition']) . "\n";
+    }
+
+    // Send the CSV to the browser
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="simple-table.csv"');
+    echo $csv;
+
+    // End execution to prevent any unwanted additional output
+    die();
+}
+add_action('wp_ajax_simple_table_plugin_export_csv', 'simple_table_plugin_export_csv');
+
 
 // Render the settings page
 function simple_table_plugin_settings_page() {
@@ -141,6 +168,7 @@ function simple_table_plugin_settings_page() {
         </form>
         <h2>Table Rows</h2>
         <?php if (!empty($rows)) { ?>
+        
             <table class="wp-list-table widefat fixed striped">
 
                 <thead>
@@ -162,13 +190,23 @@ function simple_table_plugin_settings_page() {
                         <?php } ?>
                     </tbody>
             </table>
+
         <?php } else { ?>
             <p>No rows found.</p>
         <?php } ?>
         <h2>Embedding the Table</h2>
         <pre><code id="simple-table-shortcode"><?php echo esc_html($shortcode); ?></code></pre>
         <button id="simple-table-copy-shortcode">Copy Shortcode</button>
+
+        
+        <button id="simple-table-export-csv" class="button button-primary">Export as CSV</button>
+
+
     </div>
     <?php
+
+
+
+    
 }
 ?>

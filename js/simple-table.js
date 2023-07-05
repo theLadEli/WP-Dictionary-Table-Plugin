@@ -26,6 +26,8 @@ jQuery(document).ready(function($) {
                     alert('Failed to reorder the rows. Please try again.');
                 }
             });
+        }
+    });
 
     // Handle delete button click
     $('#simple-table-rows').on('click', '.simple-table-delete-row', function() {
@@ -52,8 +54,6 @@ jQuery(document).ready(function($) {
         }
     });
 
-
-
     // Copy shortcode button
     $('#simple-table-copy-shortcode').click(function() {
         var $temp = $('<input>');
@@ -61,5 +61,41 @@ jQuery(document).ready(function($) {
         $temp.val($('#simple-table-shortcode').text()).select();
         document.execCommand('copy');
         $temp.remove();
+    });
+
+    // Export to CSV button
+    $('#simple-table-export-csv').click(function() {
+        $.ajax({
+            url: ajaxurl,
+            method: 'POST',
+            data: {
+                action: 'simple_table_plugin_export_csv',
+                security: simpleTablePlugin.security
+            },
+            xhrFields: {
+                responseType: 'blob'
+            },
+            success: function(blob) {
+                // Use blob to create an object URL
+                var url = window.URL || window.webkitURL;
+                var downloadUrl = url.createObjectURL(blob);
+
+                // Create a link and trigger a click to download the file
+                var a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'simple-table.csv';
+                document.body.appendChild(a);
+                a.click();
+
+                // Clean up
+                setTimeout(function() {
+                    url.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(a);
+                }, 100);
+            },
+            error: function() {
+                alert('Failed to export the table. Please try again.');
+            }
+        });
     });
 });
