@@ -62,7 +62,38 @@
 }
 
 .simple-table tr:last-child td:first-child {
-    border-width: 0 0 1px 1px;
+    border-width: 0 1px 0 0;
     border-style: solid;
     border-color: #E6E9F0;
+}
+
+
+/* -------------------
+----- Search Bar -----
+------------------- */
+
+#simple-table-search {
+    float: right;
+    margin-bottom: 20px;
+    height: 40px;  /* Specify a height for the input field */
+    line-height: 40px;  /* And make line-height the same to center the text vertically */
+}
+
+.search-box {
+    position: relative;
+    float: right;
+    margin-bottom: 5px;
+}
+
+#simple-table-search {
+    padding-left: 30px;  /* Leave space for the icon */
+}
+
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 33%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: #272f3a;
 }

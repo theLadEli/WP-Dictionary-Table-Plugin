@@ -2,7 +2,7 @@
 /*
 Plugin Name: Simple Dictionary Table Plugin
 Description: A simple plugin for a WordPress Dictionary Table
-Version: 2.1
+Version: 4.0
 Author: Eli
 */
 
@@ -11,6 +11,12 @@ function simple_table_shortcode() {
     $rows = get_option('simple_table_rows', array());
     ob_start();
     ?>
+
+    <!-- Search Bar -->
+    <div class="search-box">
+        <input type="text" id="simple-table-search" placeholder="Search terms...">
+        <i class="fa fa-search search-icon"></i>
+    </div>
 
     <div class="table-wrapper">
         <table class="simple-table">
@@ -32,6 +38,7 @@ function simple_table_shortcode() {
 }
 add_shortcode('simple_table', 'simple_table_shortcode');
 
+
 // Register the admin menu
 function simple_table_plugin_menu() {
     add_menu_page(
@@ -46,28 +53,64 @@ function simple_table_plugin_menu() {
 }
 add_action('admin_menu', 'simple_table_plugin_menu');
 
-// Enqueue the plugin CSS
+//Enque Font Awesome for the Search Icon
+function enqueue_font_awesome() {
+    wp_enqueue_style('font-awesome', 'https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css'); 
+}
+add_action('wp_enqueue_scripts', 'enqueue_font_awesome');
+
+
+// Enqueue the plugin CSS and JavaScript
 function simple_table_plugin_styles() {
     wp_enqueue_style('simple-table-plugin', plugin_dir_url(__FILE__) . 'css/simple-table.css');
+    wp_enqueue_script('simple-table-plugin', plugin_dir_url(__FILE__) . 'js/simple-table.js', array('jquery'), '1.0', true);
+
+    wp_localize_script('simple-table-plugin', 'simpleTablePlugin', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'searchNonce' => wp_create_nonce('simple-table-plugin-search'),
+    ));
 }
 add_action('wp_enqueue_scripts', 'simple_table_plugin_styles');
+
+
+// Localize the frontend JavaScript
+function simple_table_plugin_localize_frontend_scripts() {
+    wp_localize_script('simple-table-plugin-js', 'simpleTablePlugin', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'searchNonce' => wp_create_nonce('simple-table-plugin-search'),
+    ));    
+}
+add_action('wp_enqueue_scripts', 'simple_table_plugin_localize_frontend_scripts');
+
+
 
 // Enqueue the admin CSS and JavaScript
 function simple_table_plugin_admin_scripts() {
     wp_enqueue_script('jquery-ui-sortable');
     wp_enqueue_style('simple-table-plugin', plugin_dir_url(__FILE__) . 'css/simple-table.css');
     wp_enqueue_script('simple-table-plugin', plugin_dir_url(__FILE__) . 'js/simple-table.js', array('jquery', 'jquery-ui-sortable'));
+
+    wp_localize_script('simple-table-plugin', 'simpleTablePlugin', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
+        'security' => wp_create_nonce('simple-table-plugin'),
+        'deleteNonce' => wp_create_nonce('simple-table-plugin-delete-row'), // new nonce for delete
+        'searchNonce' => wp_create_nonce('simple-table-plugin-search') // new nonce for search
+    ));
 }
 add_action('admin_enqueue_scripts', 'simple_table_plugin_admin_scripts');
+
 
 // Localize the admin JavaScript
 function simple_table_plugin_localize_scripts() {
     wp_localize_script('simple-table-plugin', 'simpleTablePlugin', array(
+        'ajaxurl' => admin_url('admin-ajax.php'),
         'security' => wp_create_nonce('simple-table-plugin'),
-        'deleteNonce' => wp_create_nonce('simple-table-plugin-delete-row') // new nonce for delete
+        'deleteNonce' => wp_create_nonce('simple-table-plugin-delete-row'), // new nonce for delete
+        'searchNonce' => wp_create_nonce('simple-table-plugin-search') // new nonce for search
     ));
 }
 add_action('admin_enqueue_scripts', 'simple_table_plugin_localize_scripts');
+
 
 
 // Handle AJAX delete
@@ -116,6 +159,41 @@ function simple_table_plugin_export_csv() {
 }
 add_action('wp_ajax_simple_table_plugin_export_csv', 'simple_table_plugin_export_csv');
 
+
+// Handle Search Functionality
+function simple_table_plugin_search() {
+    check_ajax_referer('simple-table-plugin-search', 'security');
+
+    $searchTerm = sanitize_text_field($_POST['searchTerm']);
+    $rows = get_option('simple_table_rows', array());
+
+    ob_start();
+
+    ?>
+
+    <div class="table-wrapper">
+        <table class="simple-table">
+            <tr>
+                <th>Term</th>
+                <th>Definition</th>
+            </tr>
+            <?php foreach ($rows as $row) {
+                if(strpos(strtolower($row['term']), strtolower($searchTerm)) !== false) { ?>
+                    <tr>
+                        <td><?php echo esc_html(stripslashes($row['term'])); ?></td>
+                        <td><?php echo esc_html(stripslashes($row['definition'])); ?></td>
+                    </tr>
+            <?php } } ?>
+        </table>
+    </div>
+
+    <?php
+
+    echo ob_get_clean();
+    wp_die();
+}
+add_action('wp_ajax_simple_table_plugin_search', 'simple_table_plugin_search');
+add_action('wp_ajax_nopriv_simple_table_plugin_search', 'simple_table_plugin_search');
 
 
 // Render the settings page
