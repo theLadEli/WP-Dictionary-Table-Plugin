@@ -2,7 +2,7 @@
 /*
 Plugin Name: Simple Dictionary Table Plugin
 Description: A simple plugin for a WordPress Dictionary Table
-Version: 4.0
+Version: 4.31
 Author: Eli
 */
 
